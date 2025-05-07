@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Firestore Monitor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Titan+One&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Titan One', cursive;
+      background: url('https://i.imgur.com/RafauzV.png') repeat;
+      background-size: cover;
+      color: #fff;
+      padding: 2rem;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    .title-image {
+      display: block;
+      margin: 0 auto 2rem auto;
+      max-width: 50%;
+      height: auto;
+    }
+
+    details {
+      background: linear-gradient(to bottom right, #40e0d0, #008080);
+      opacity: 0.7;
+      margin-bottom: 1rem;
+      border-radius: 12px;
+      padding: 1rem;
+      max-height: 360px;
+      overflow-y: auto;
+      border: 2px solid white;
+      box-shadow: 0 0 15px white;
+    }
+
+    summary {
+      cursor: pointer;
+      font-size: 1.5rem;
+      color: #fff;
+      outline: none;
+      text-shadow: 2px 2px 0 black;
+      display: flex;
+      align-items: center;
+    }
+
+    summary img {
+      width: 24px;
+      height: 24px;
+      margin-right: 10px;
+    }
+
+    .scroll-container {
+      max-height: 230px;
+      overflow-y: auto;
+      margin-top: 1rem;
+    }
+
+    .scroll-item {
+      background-color: rgba(255, 255, 255, 0.15);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.6rem 1rem;
+      margin-bottom: 0.5rem;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      text-shadow: 2px 2px 0 black;
+    }
+
+    .path {
+      max-width: 75%;
+      overflow-wrap: break-word;
+    }
+
+    .status {
+      padding: 0.3rem 0.7rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+
+    .status.waiting {
+      background-color: #777;
+      color: white;
+    }
+
+    .status.available {
+      background-color: #4caf50;
+      color: white;
+    }
+
+    .hidden-count {
+      font-size: 0.8rem;
+      color: #ccc;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+
+  <img src="https://i.imgur.com/XYdJtM8.png" alt="Title Image" class="title-image">
+
+  <details open>
+    <summary><img src="https://example.com/sbc-icon.png" alt="SBC Icon"> SBC Groups</summary>
+    <div class="scroll-container" id="sbcGroupsList"></div>
+    <div class="hidden-count" id="sbcGroupsHiddenCount"></div>
+  </details>
+
+  <details>
+    <summary><img src="https://example.com/ltm-icon.png" alt="LTM Icon"> LTM Market</summary>
+    <div class="scroll-container" id="ltmMarketList"></div>
+    <div class="hidden-count" id="ltmMarketHiddenCount"></div>
+  </details>
+
+  <details>
+    <summary><img src="https://example.com/configs-icon.png" alt="Configs Icon"> Configs</summary>
+    <div class="scroll-container" id="configsList"></div>
+    <div class="hidden-count" id="configsHiddenCount"></div>
+  </details>
+
+  <details>
+    <summary><img src="https://example.com/dotd-icon.png" alt="DOTD Icon"> DOTD</summary>
+    <div class="scroll-container" id="dotdList"></div>
+    <div class="hidden-count" id="dotdHiddenCount"></div>
+  </details>
+
+  <details>
+    <summary><img src="https://example.com/updates-icon.png" alt="Updates Icon"> Updates</summary>
+    <div class="scroll-container" id="updatesList"></div>
+    <div class="hidden-count" id="updatesHiddenCount"></div>
+  </details>
+
+  <details>
+    <summary><img src="https://example.com/objectives-icon.png" alt="Objectives Icon"> Objectives</summary>
+    <div class="scroll-container" id="objectivesList"></div>
+    <div class="hidden-count" id="objectivesHiddenCount"></div>
+  </details>
+
+  <details>
+    <summary><img src="https://example.com/draftcups-icon.png" alt="Draft Cups Icon"> Draft Cups</summary>
+    <div class="scroll-container" id="draftCupsList"></div>
+    <div class="hidden-count" id="draftCupsHiddenCount"></div>
+  </details>
+
+  <details>
+    <summary><img src="https://example.com/fatal-icon.png" alt="Fatal Icon"> Fatal Categories</summary>
+    <div class="scroll-container" id="fatalCategoriesList"></div>
+    <div class="hidden-count" id="fatalCategoriesHiddenCount"></div>
+  </details>
+
+  <details>
+    <summary><img src="https://example.com/images-icon.png" alt="Images Icon"> Images</summary>
+    <div class="scroll-container" id="imagesList"></div>
+    <div class="hidden-count" id="imagesHiddenCount"></div>
+  </details>
+
+  <details>
+    <summary><img src="https://example.com/votes-icon.png" alt="Votes Icon"> Votes</summary>
+    <div class="scroll-container" id="votesList"></div>
+    <div class="hidden-count" id="votesHiddenCount"></div>
+  </details>
+
+  <script>
+    const baseURL = "https://firestore.googleapis.com/v1/projects/madfut-25/databases/(default)/documents/";
+
+    const categories = [
+      { name: "SBC Groups", path: "sbcGroups/", start: 1, end: 50, elementId: "sbcGroupsList", hiddenCountId: "sbcGroupsHiddenCount" },
+      { name: "LTM Market", path: "ltmMarket/", start: 1, end: 75, elementId: "ltmMarketList", hiddenCountId: "ltmMarketHiddenCount" },
+      { name: "Configs", path: "configs/", start: 1, end: 400, elementId: "configsList", hiddenCountId: "configsHiddenCount" },
+      { name: "DOTD", path: "dotd/", start: 1, end: 50, elementId: "dotdList", hiddenCountId: "dotdHiddenCount" },
+      { name: "Updates", path: "updates/", start: 1, end: 150, elementId: "updatesList", hiddenCountId: "updatesHiddenCount" },
+      { name: "Objectives", path: "objectives/", start: 1, end: 50, elementId: "objectivesList", hiddenCountId: "objectivesHiddenCount" },
+      { name: "Draft Cups", path: "draftCups/", start: 1, end: 40, elementId: "draftCupsList", hiddenCountId: "draftCupsHiddenCount" },
+      { name: "Images", path: "images/", start: 1, end: 40, elementId: "imagesList", hiddenCountId: "imagesHiddenCount" },
+      { name: "Votes", path: "votes/", start: 1, end: 30, elementId: "votesList", hiddenCountId: "votesHiddenCount" },
+      {
+        name: "Fatal Categories",
+        paths: ["fatalSim/", "fatalMyClub/", "fatalDraft/"],
+        start: 1,
+        end: 50,
+        elementId: "fatalCategoriesList",
+        hiddenCountId: "fatalCategoriesHiddenCount",
+        fatal: true
+      }
+    ];
+
+    const categoryData = {};
+
+    // Set up the lists for each category
+    function setupLists() {
+      categories.forEach(cat => {
+        const container = document.getElementById(cat.elementId);
+        const paths = cat.fatal ? cat.paths : [cat.path];
+        categoryData[cat.name] = [];
+
+        for (let i = cat.start; i <= cat.end; i++) {
+          paths.forEach(path => {
+            const fullUrl = baseURL + path + i;
+            const shortPath = path + i;
+            const statusId = `status-${btoa(fullUrl)}`;
+
+            const li = document.createElement("div");
+            li.className = "scroll-item";
+            li.innerHTML = `
+              <span class="path">${shortPath}</span>
+              <span class="status waiting" id="${statusId}">⏳ Waiting</span>
+            `;
+            container.appendChild(li);
+
+            categoryData[cat.name].push({
+              fullUrl,
+              shortPath,
+              elementId: statusId,
+              index: i,
+              path
+            });
+          });
+        }
+      });
+    }
+
+    async function checkUrls() {
+      const promises = [];
+
+      // Fetch all URLs at the same time using Promise.all()
+      categories.forEach(cat => {
+        const items = categoryData[cat.name];
+
+        items.forEach(item => {
+          promises.push(
+            fetch(item.fullUrl)
+              .then(res => {
+                const status = res.ok ? "available" : "waiting";
+                updateStatus(item.elementId, status);
+              })
+              .catch(() => {
+                updateStatus(item.elementId, "waiting");
+              })
+          );
+        });
+      });
+
+      await Promise.all(promises); // Wait for all requests to finish
+    }
+
+    function updateStatus(id, status) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.className = `status ${status}`;
+      el.textContent = status === "available" ? "✅ Available" : "⏳ Waiting";
+    }
+
+    setupLists();
+    setInterval(checkUrls, 500);  // Check all links every 1 minute
+  </script>
+
+</body>
+</html>
